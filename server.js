@@ -5,7 +5,7 @@ const initSqlJs = require('sql.js');
 const multer = require('multer');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'construccion.db');
 const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
 
