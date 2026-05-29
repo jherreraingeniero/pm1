@@ -597,5 +597,5 @@ app.get('/reporte-cliente', (req, res) => res.sendFile(path.join(__dirname, 'pub
 app.get('/{*path}', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 initDB().then(() => {
-  app.listen(PORT, () => console.log(`\n✅ Servidor iniciado en http://localhost:${PORT}\n`));
+  app.listen(PORT, '0.0.0.0', () => console.log(`\n✅ Servidor iniciado en http://localhost:${PORT}\n`));
 }).catch(console.error);
