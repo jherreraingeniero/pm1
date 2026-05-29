@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm init *)",
+      "Bash(npm install *)",
+      "PowerShell(New-Item -ItemType Directory -Force \"D:\\\\ING HERRERA\\\\AI engineering\\\\PM 1\\\\public\")",
+      "Bash(node -e \"require\\('./server.js'\\)\")",
+      "Bash(curl -s http://localhost:3000/api/dashboard)",
+      "Bash(node server.js)",
+      "Bash(curl -s http://localhost:3000/api/pagos)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'{len\\(d\\)} pagos, estados: {set\\(p[\\\\\"estado\\\\\"] for p in d\\)}'\\)\")",
+      "Bash(curl -s http://localhost:3000/api/actividades)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.length+' actividades'\\)}\\)\")",
+      "Bash(curl -s http://localhost:3000/api/personal)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.length+' empleados'\\)}\\)\")",
+      "Bash(npm start *)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\('OK - proyectos:'+j.totalProyectos+' avance:'+j.avanceTotal+'%'\\)}\\)\")",
+      "Bash(curl -s http://localhost:3000/api/configuracion)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\('Dashboard OK — alertas:',j.alertas.length,'proyectos:',j.totalProyectos\\)}\\)\")",
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{try{const j=JSON.parse\\(d\\);console.log\\('OK — alertas:',j.alertas?.length,'proyectos:',j.totalProyectos\\)}catch\\(e\\){console.log\\('Error parse:',d.slice\\(0,200\\)\\)}}\\)\")"
+    ]
+  }
+}
