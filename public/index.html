@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GestObra – Gestión de Proyectos</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">🏗️</span>
+        <span class="logo-text" id="logoEmpresa">GestObra</span>
+      </div>
+      <button class="sidebar-close" id="sidebarClose">✕</button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="dashboard"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+      <div class="nav-group-label">OBRA</div>
+      <a href="#" class="nav-item" data-section="proyectos"><span class="nav-icon">🏢</span><span>Proyectos</span></a>
+      <a href="#" class="nav-item" data-section="actividades"><span class="nav-icon">📋</span><span>Actividades</span></a>
+      <a href="#" class="nav-item" data-section="bitacora"><span class="nav-icon">📓</span><span>Bitácora</span></a>
+      <a href="#" class="nav-item" data-section="fotos"><span class="nav-icon">📷</span><span>Fotos de Avance</span></a>
+      <div class="nav-group-label">RECURSOS</div>
+      <a href="#" class="nav-item" data-section="personal"><span class="nav-icon">👷</span><span>Personal</span></a>
+      <a href="#" class="nav-item" data-section="asistencia"><span class="nav-icon">📅</span><span>Asistencia</span></a>
+      <a href="#" class="nav-item" data-section="subcontratistas"><span class="nav-icon">🤝</span><span>Subcontratistas</span></a>
+      <div class="nav-group-label">LOGÍSTICA</div>
+      <a href="#" class="nav-item" data-section="materiales"><span class="nav-icon">🧱</span><span>Materiales</span></a>
+      <a href="#" class="nav-item" data-section="historial"><span class="nav-icon">📈</span><span>Historial Precios</span></a>
+      <div class="nav-group-label">FINANZAS</div>
+      <a href="#" class="nav-item" data-section="pagos"><span class="nav-icon">💰</span><span>Pagos</span></a>
+      <a href="#" class="nav-item" data-section="presupuesto"><span class="nav-icon">📊</span><span>Presupuesto</span></a>
+      <div class="nav-group-label">GESTIÓN</div>
+      <a href="#" class="nav-item" data-section="clientes"><span class="nav-icon">👤</span><span>Clientes</span></a>
+      <a href="#" class="nav-item" data-section="informes"><span class="nav-icon">📄</span><span>Informes PDF</span></a>
+      <a href="#" class="nav-item" data-section="reporte"><span class="nav-icon">🔗</span><span>Reporte Cliente</span></a>
+      <a href="#" class="nav-item" data-section="configuracion"><span class="nav-icon">⚙️</span><span>Configuración</span></a>
+    </nav>
+    <div class="sidebar-footer">v2.0 &copy; 2026</div>
+  </aside>
+
+  <div class="overlay" id="overlay"></div>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      <div class="topbar-right">
+        <span class="moneda-badge" id="monedaBadge">COP</span>
+        <span class="fecha-hoy" id="fechaHoy"></span>
+      </div>
+    </header>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">Formulario</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
+      <button class="btn btn-primary" id="modalSave">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- CDN Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+<!-- App modules -->
+<script src="modules/core.js"></script>
+<script src="modules/dashboard.js"></script>
+<script src="modules/proyectos.js"></script>
+<script src="modules/actividades.js"></script>
+<script src="modules/personal.js"></script>
+<script src="modules/asistencia.js"></script>
+<script src="modules/materiales.js"></script>
+<script src="modules/pagos.js"></script>
+<script src="modules/clientes.js"></script>
+<script src="modules/bitacora.js"></script>
+<script src="modules/subcontratistas.js"></script>
+<script src="modules/historial.js"></script>
+<script src="modules/presupuesto.js"></script>
+<script src="modules/fotos.js"></script>
+<script src="modules/informes.js"></script>
+<script src="modules/reporte.js"></script>
+<script src="modules/configuracion.js"></script>
+<script src="modules/init.js"></script>
+</body>
+</html>

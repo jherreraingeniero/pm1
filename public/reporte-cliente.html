@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Proyecto</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --primary: #1a6b3c; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; color: var(--text); }
+  .container { max-width: 900px; margin: 0 auto; padding: 0 16px 40px; }
+  .header { background: var(--primary); color: #fff; padding: 32px 24px; margin-bottom: 24px; }
+  .header h1 { font-size: 1.8rem; margin-bottom: 6px; }
+  .header p { opacity: .8; font-size: .92rem; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: .75rem; font-weight: 600; }
+  .badge-success { background: #dcfce7; color: #15803d; }
+  .badge-gray    { background: #f1f5f9; color: #475569; }
+  .badge-warning { background: #fef3c7; color: #b45309; }
+  .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.08); border: 1px solid var(--border); margin-bottom: 20px; }
+  .kpi-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px; }
+  .kpi { flex: 1; min-width: 130px; background: #f8fafc; border-radius: 8px; padding: 16px; text-align: center; border: 1px solid var(--border); }
+  .kpi .v { font-size: 2rem; font-weight: 800; color: var(--primary); }
+  .kpi .l { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+  h2 { font-size: .85rem; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-bottom: 2px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .progress-wrap { background: #e2e8f0; border-radius: 99px; height: 7px; overflow: hidden; }
+  .progress-bar  { height: 100%; border-radius: 99px; }
+  .act-row { margin-bottom: 10px; }
+  .act-label { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: 3px; }
+  .fotos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 10px; }
+  .foto-item { border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .foto-item img { width: 100%; height: 120px; object-fit: cover; display: block; cursor: pointer; }
+  .foto-item p { font-size: .72rem; padding: 5px 6px; color: var(--muted); }
+  .bitacora-item { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .bit-fecha { font-weight: 700; font-size: .87rem; margin-bottom: 4px; }
+  .bit-text { font-size: .84rem; }
+  .print-btn { position: fixed; bottom: 24px; right: 24px; background: var(--primary); color: #fff; border: none; border-radius: 50px; padding: 12px 20px; font-size: .9rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+  .powered { text-align: center; font-size: .75rem; color: var(--muted); margin-top: 32px; }
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.9); z-index: 100; align-items: center; justify-content: center; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 6px; }
+  .lightbox-close { position: absolute; top: 16px; right: 20px; color: #fff; font-size: 1.8rem; cursor: pointer; background: none; border: none; }
+  @media print { .print-btn { display: none; } body { background: #fff; } .header { -webkit-print-color-adjust: exact; } }
+  @media (max-width: 600px) { .header { padding: 20px 16px; } .header h1 { font-size: 1.3rem; } }
+</style>
+</head>
+<body>
+<div id="lightbox" class="lightbox" onclick="this.classList.remove('open')">
+  <button class="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">✕</button>
+  <img id="lb-img" src="">
+</div>
+<div id="root"><div style="text-align:center;padding:60px;color:#64748b">Cargando informe...</div></div>
+<button class="print-btn" onclick="window.print()">🖨️ Imprimir / PDF</button>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
+if (!id) {
+  document.getElementById('root').innerHTML = '<div style="text-align:center;padding:60px;color:#dc2626">ID de proyecto no especificado.</div>';
+} else {
+  fetch('/api/reporte-cliente/' + id)
+    .then(r => r.json())
+    .then(d => {
+      const p = d.proyecto;
+      const badgeCls = p.estado==='activo'?'badge-success':p.estado==='finalizado'?'badge-gray':'badge-warning';
+      const actComp = d.actividades.filter(a=>a.estado==='completado').length;
+
+      document.title = p.nombre + ' – Reporte';
+
+      document.getElementById('root').innerHTML = `
+        <div class="header">
+          <div class="container" style="padding-top:0;padding-bottom:0">
+            <h1>${p.nombre}</h1>
+            <p>${p.descripcion||''}</p>
+            ${p.ubicacion?`<p style="margin-top:4px;opacity:.65;font-size:.82rem">📍 ${p.ubicacion}</p>`:''}
+            ${p.cliente_nombre?`<p style="opacity:.65;font-size:.82rem">👤 Cliente: ${p.cliente_nombre}${p.cliente_empresa?' – '+p.cliente_empresa:''}</p>`:''}
+          </div>
+        </div>
+        <div class="container">
+          <div class="kpi-row">
+            <div class="kpi"><div class="v">${d.avance}%</div><div class="l">Avance general</div></div>
+            <div class="kpi"><div class="v">${actComp}/${d.actividades.length}</div><div class="l">Actividades completadas</div></div>
+            <div class="kpi"><div class="v"><span class="badge ${badgeCls}">${p.estado}</span></div><div class="l">Estado</div></div>
+            <div class="kpi"><div class="v">${d.fotos.length}</div><div class="l">Fotos de avance</div></div>
+          </div>
+
+          ${d.actividades.length?`<div class="card">
+            <h2>Avance de Actividades</h2>
+            ${d.actividades.map(a=>{
+              const pct = a.cantidad_planificada>0?Math.min(100,Math.round(a.cantidad_ejecutada/a.cantidad_planificada*100)):0;
+              const col = pct>=100?'#16a34a':pct>=50?'#f59e0b':'#dc2626';
+              return `<div class="act-row">
+                <div class="act-label">
+                  <span>${a.nombre} <span style="font-size:.75rem;color:#94a3b8">(${a.unidad})</span></span>
+                  <span style="font-weight:700">${pct}%</span>
+                </div>
+                <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${col}"></div></div>
+              </div>`;
+            }).join('')}
+          </div>`:''}
+
+          ${d.fotos.length?`<div class="card">
+            <h2>Registro Fotográfico</h2>
+            <div class="fotos-grid">
+              ${d.fotos.map(f=>`<div class="foto-item">
+                <img src="${f.url}" alt="${f.comentario||''}" onclick="openLB('${f.url}')">
+                <p>${f.fecha||''}${f.comentario?' · '+f.comentario:''}</p>
+              </div>`).join('')}
+            </div>
+          </div>`:''}
+
+          ${d.bitacora.length?`<div class="card">
+            <h2>Novedades Recientes</h2>
+            ${d.bitacora.map(b=>`<div class="bitacora-item">
+              <div class="bit-fecha">📅 ${b.fecha}</div>
+              ${b.actividades_dia?`<div class="bit-text">${b.actividades_dia}</div>`:''}
+              ${b.observaciones?`<div class="bit-text" style="color:#64748b;margin-top:2px">${b.observaciones}</div>`:''}
+            </div>`).join('')}
+          </div>`:''}
+
+          <div class="powered">Generado con GestObra · ${new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'})}</div>
+        </div>`;
+    }).catch(()=>{
+      document.getElementById('root').innerHTML='<div style="text-align:center;padding:60px;color:#dc2626">No se pudo cargar el informe.</div>';
+    });
+}
+function openLB(src) {
+  document.getElementById('lb-img').src=src;
+  document.getElementById('lightbox').classList.add('open');
+}
+</script>
+</body>
+</html>
