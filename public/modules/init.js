@@ -15,6 +15,7 @@ const secciones = {
   fotos:           renderFotos,
   informes:        renderInformes,
   reporte:         renderReporte,
+  facturas:        renderFacturas,
   configuracion:   renderConfiguracion,
 };
 
@@ -24,7 +25,8 @@ const titulos = {
   pagos: 'Pagos', clientes: 'Clientes', bitacora: 'Bitácora Diaria',
   subcontratistas: 'Subcontratistas', historial: 'Historial de Precios',
   presupuesto: 'Presupuesto vs Real', fotos: 'Fotos de Avance',
-  informes: 'Informes PDF', reporte: 'Reporte Cliente', configuracion: 'Configuración',
+  informes: 'Informes PDF', reporte: 'Reporte Cliente',
+  facturas: 'Facturación', configuracion: 'Configuración',
 };
 
 let seccionActual = 'dashboard';

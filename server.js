@@ -1,8 +1,9 @@
-const express = require('express');
-const path    = require('path');
-const fs      = require('fs');
-const multer  = require('multer');
-const sharp   = require('sharp');
+const express   = require('express');
+const path      = require('path');
+const fs        = require('fs');
+const multer    = require('multer');
+const sharp     = require('sharp');
+const Anthropic = require('@anthropic-ai/sdk');
 
 const IS_PG = !!process.env.DATABASE_URL;   // true en Railway, false en local
 const app    = express();
@@ -169,6 +170,15 @@ async function createTables() {
       fecha_compra TEXT NOT NULL, proyecto_id INTEGER,
       cantidad REAL DEFAULT 0, notas TEXT,
       created_at ${tsType} DEFAULT (${now}))`,
+
+    `CREATE TABLE IF NOT EXISTS facturas (
+      id ${serial} PRIMARY KEY ${ai}, proyecto_id INTEGER,
+      fecha TEXT, proveedor TEXT,
+      categoria TEXT DEFAULT 'Otros',
+      monto REAL DEFAULT 0, descripcion TEXT,
+      url_foto TEXT, notas TEXT,
+      created_at ${tsType} DEFAULT (${now}),
+      FOREIGN KEY(proyecto_id) REFERENCES proyectos(id))`,
   ];
 
   for (const sql of tables) {
@@ -705,6 +715,141 @@ app.get('/api/reporte-cliente/:id', async (req, res) => {
   const avance = acts.length
     ? Math.round(acts.reduce((s,a)=>s+(a.cantidad_planificada>0?a.cantidad_ejecutada/a.cantidad_planificada:0),0)/acts.length*100) : 0;
   res.json({ proyecto, actividades:acts, fotos, bitacora, avance });
+});
+
+// ── API: FACTURAS ─────────────────────────────────────────────────────────────
+const CATEGORIAS_FACTURA = [
+  'Materiales de construcción','Mano de obra','Equipos y maquinaria',
+  'Subcontratos','Servicios públicos','Transporte y logística',
+  'Herramientas','Honorarios profesionales','Otros'
+];
+
+// Procesar imagen con Claude para extraer datos de la factura
+app.post('/api/facturas/procesar', upload.single('factura'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió imagen' });
+
+  const filePath = req.file.path;
+  const ext      = path.extname(req.file.filename).toLowerCase();
+  const outName  = req.file.filename.replace(ext, '.jpg');
+  const outPath  = path.join(UPLOADS_DIR, outName);
+
+  // Comprimir para almacenamiento (mayor calidad para legibilidad de texto)
+  try {
+    await sharp(filePath)
+      .rotate()
+      .resize({ width: 1600, withoutEnlargement: true })
+      .jpeg({ quality: 88 })
+      .toFile(outPath);
+    if (outPath !== filePath) fs.unlinkSync(filePath);
+  } catch { /* conservar original si falla */ }
+
+  const url = '/uploads/' + outName;
+  let extracted = { fecha: null, proveedor: null, monto: null, descripcion: null, categoria: 'Otros' };
+
+  // OCR con Claude si hay API key
+  if (process.env.ANTHROPIC_API_KEY) {
+    try {
+      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+      const imageBase64 = fs.readFileSync(outPath).toString('base64');
+      const msg = await anthropic.messages.create({
+        model: 'claude-3-5-haiku-20241022',
+        max_tokens: 512,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+            { type: 'text', text: `Eres un asistente de contabilidad para obras de construcción.
+Extrae los datos de esta factura/recibo y responde ÚNICAMENTE con un JSON válido, sin texto adicional:
+{
+  "fecha": "YYYY-MM-DD o null",
+  "proveedor": "nombre del proveedor o null",
+  "monto": número sin símbolos ni puntos de miles (solo el TOTAL a pagar) o null,
+  "descripcion": "descripción breve en máx 80 caracteres o null",
+  "categoria": una de estas exactamente: ${JSON.stringify(CATEGORIAS_FACTURA)}
+}` }
+          ]
+        }]
+      });
+      const raw = msg.content[0].text.trim().replace(/^```json|```$/g, '').trim();
+      extracted = { ...extracted, ...JSON.parse(raw) };
+    } catch (e) {
+      console.error('Claude OCR error:', e.message);
+    }
+  }
+
+  res.json({ ok: true, url, extracted });
+});
+
+// Stats para gráficas
+app.get('/api/facturas/stats', async (req, res) => {
+  const { proyecto_id } = req.query;
+  const filtro  = proyecto_id ? ' AND f.proyecto_id=?' : '';
+  const params  = proyecto_id ? [proyecto_id] : [];
+
+  const porCategoria = await dbQuery(
+    `SELECT categoria, SUM(monto) as total, COUNT(*) as cantidad
+     FROM facturas f WHERE 1=1${filtro} GROUP BY categoria ORDER BY total DESC`, params);
+
+  const porProyecto = await dbQuery(
+    `SELECT p.nombre as proyecto, SUM(f.monto) as total, COUNT(*) as cantidad
+     FROM facturas f JOIN proyectos p ON f.proyecto_id=p.id
+     WHERE 1=1${filtro} GROUP BY p.nombre ORDER BY total DESC`, params);
+
+  const porMes = IS_PG
+    ? await dbQuery(
+        `SELECT TO_CHAR(fecha::date,'YYYY-MM') as mes, SUM(monto) as total
+         FROM facturas f WHERE fecha IS NOT NULL${filtro}
+         GROUP BY mes ORDER BY mes`, params)
+    : await dbQuery(
+        `SELECT strftime('%Y-%m', fecha) as mes, SUM(monto) as total
+         FROM facturas f WHERE fecha IS NOT NULL${filtro}
+         GROUP BY mes ORDER BY mes`, params);
+
+  const totales = await dbQuery(
+    `SELECT COUNT(*) as cantidad, COALESCE(SUM(monto),0) as total
+     FROM facturas f WHERE 1=1${filtro}`, params);
+
+  res.json({ porCategoria, porProyecto, porMes, totales: totales[0] });
+});
+
+// CRUD
+app.get('/api/facturas', async (req, res) => {
+  const { proyecto_id, categoria, desde, hasta } = req.query;
+  let sql = `SELECT f.*, p.nombre as proyecto_nombre
+    FROM facturas f LEFT JOIN proyectos p ON f.proyecto_id=p.id WHERE 1=1`;
+  const params = [];
+  if (proyecto_id) { sql += ' AND f.proyecto_id=?'; params.push(proyecto_id); }
+  if (categoria)   { sql += ' AND f.categoria=?';   params.push(categoria); }
+  if (desde)       { sql += ' AND f.fecha>=?';       params.push(desde); }
+  if (hasta)       { sql += ' AND f.fecha<=?';       params.push(hasta); }
+  res.json(await dbQuery(sql + ' ORDER BY f.fecha DESC, f.created_at DESC', params));
+});
+
+app.post('/api/facturas', async (req, res) => {
+  const { proyecto_id,fecha,proveedor,categoria,monto,descripcion,url_foto,notas } = req.body;
+  const r = await dbRun(
+    `INSERT INTO facturas (proyecto_id,fecha,proveedor,categoria,monto,descripcion,url_foto,notas)
+     VALUES (?,?,?,?,?,?,?,?)`,
+    [proyecto_id||null, fecha, proveedor, categoria||'Otros', monto||0, descripcion, url_foto, notas]);
+  res.json({ ok:true, id:r.id });
+});
+
+app.put('/api/facturas/:id', async (req, res) => {
+  const { proyecto_id,fecha,proveedor,categoria,monto,descripcion,notas } = req.body;
+  await dbRun(
+    `UPDATE facturas SET proyecto_id=?,fecha=?,proveedor=?,categoria=?,monto=?,descripcion=?,notas=? WHERE id=?`,
+    [proyecto_id||null, fecha, proveedor, categoria, monto||0, descripcion, notas, req.params.id]);
+  res.json({ ok:true });
+});
+
+app.delete('/api/facturas/:id', async (req, res) => {
+  const f = (await dbQuery('SELECT url_foto FROM facturas WHERE id=?', [req.params.id]))[0];
+  if (f?.url_foto) {
+    const fp = path.join(__dirname, 'public', f.url_foto);
+    if (fs.existsSync(fp)) fs.unlinkSync(fp);
+  }
+  await dbRun('DELETE FROM facturas WHERE id=?', [req.params.id]);
+  res.json({ ok:true });
 });
 
 // ── SPA Fallback ──────────────────────────────────────────────────────────────
