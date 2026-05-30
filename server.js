@@ -2,6 +2,7 @@ const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
 const multer  = require('multer');
+const sharp   = require('sharp');
 
 const IS_PG = !!process.env.DATABASE_URL;   // true en Railway, false en local
 const app    = express();
@@ -469,7 +470,24 @@ app.get('/api/fotos', async (req, res) => {
 app.post('/api/fotos', upload.single('foto'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error:'No se recibió imagen' });
   const { actividad_id, proyecto_id, fecha, comentario } = req.body;
-  const url = '/uploads/' + req.file.filename;
+
+  // Comprimir y redimensionar con sharp (máx 1200px, calidad 75%)
+  const filePath = req.file.path;
+  const ext      = path.extname(req.file.filename).toLowerCase();
+  const outName  = req.file.filename.replace(ext, '.jpg');
+  const outPath  = path.join(UPLOADS_DIR, outName);
+  try {
+    await sharp(filePath)
+      .rotate()                          // respeta orientación EXIF
+      .resize({ width: 1200, withoutEnlargement: true })
+      .jpeg({ quality: 75 })
+      .toFile(outPath);
+    if (outPath !== filePath) fs.unlinkSync(filePath); // elimina el original si cambió extensión
+  } catch {
+    // Si sharp falla (formato raro), usa el archivo original tal cual
+  }
+
+  const url = '/uploads/' + outName;
   await dbRun(`INSERT INTO fotos_actividad (actividad_id,proyecto_id,url,fecha,comentario) VALUES (?,?,?,?,?)`,
     [actividad_id||null, proyecto_id, url, fecha||new Date().toISOString().split('T')[0], comentario||'']);
   res.json({ ok:true, url });
